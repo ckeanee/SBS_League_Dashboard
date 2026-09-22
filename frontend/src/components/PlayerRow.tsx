@@ -55,9 +55,9 @@ export function PlayerRow({ playerId, name, subtitle, trailing, points, statLine
         </div>
       </div>
       {hasStatLine && expanded ? (
-        <div className="flex flex-wrap gap-x-2 gap-y-0.5 px-2.5 pb-2">
+        <div className="flex flex-wrap gap-x-2 gap-y-1 px-2.5 pb-2">
           {statLine!.map((s, i) => (
-            <span key={i} className="text-[10px] text-ink-500 whitespace-nowrap">
+            <span key={i} className="text-[11px] text-ink-500 whitespace-nowrap">
               <span className="text-ink-300 font-medium">{s.value}</span> {s.label}
             </span>
           ))}
