@@ -3,7 +3,7 @@ import logging
 import requests
 
 from app.cache import boxscore_cache, league_data_cache, nfl_logos_cache
-from app.core.constants import API_BASE_URL, BOXSCORE_API_URL, NFL_TEAMS
+from app.core.constants import API_BASE_URL, BOXSCORE_API_URL, FANTASY_STAT_LABELS, NFL_TEAMS
 from app.core.errors import ESPNUpstreamError
 
 logger = logging.getLogger(__name__)
@@ -127,8 +127,10 @@ DEFAULT_POSITION_NAMES = {1: "QB", 5: "K", 7: "P"}
 
 
 def get_player_bio(league_id: str, player_id: int) -> dict | None:
-    """Find a player anywhere in a league's rosters and return bio info plus their
-    actual (not projected) weekly points for every scoring period played so far."""
+    """Find a player anywhere in a league's rosters and return their bio info. Weekly
+    performance isn't sourced here — this roster-overview endpoint only embeds a narrow
+    window of a player's actual stats (current week plus projections plus season total),
+    not full season history; see get_player_weekly_performance for that."""
     league_data = fetch_league_data(league_id)
     if not league_data:
         return None
@@ -142,25 +144,31 @@ def get_player_bio(league_id: str, player_id: int) -> dict | None:
             pro_team_id = player_info.get("proTeamId")
             nfl_team = NFL_TEAMS.get(pro_team_id, "N/A") if pro_team_id else "N/A"
 
-            weekly_points = [
-                {"week": s["scoringPeriodId"], "points": round(s.get("appliedTotal", 0), 2)}
-                for s in player_info.get("stats", [])
-                # statSourceId 0 = actual (not projected); statSplitTypeId 1 = single week
-                # (not a season/last-N aggregate); scoringPeriodId 0 means "season total".
-                if s.get("statSourceId") == 0 and s.get("statSplitTypeId") == 1 and s.get("scoringPeriodId", 0) > 0
-            ]
-            weekly_points.sort(key=lambda w: w["week"])
-
             return {
                 "player_id": str(player_id),
                 "name": player_info.get("fullName", "Unknown"),
                 "position": DEFAULT_POSITION_NAMES.get(player_info.get("defaultPositionId"), "UNKNOWN"),
                 "nfl_team": nfl_team,
                 "nfl_logo": get_nfl_logo(nfl_team) if nfl_team != "N/A" else "",
-                "weekly_points": weekly_points,
             }
 
     return None
+
+
+def _scoring_breakdown(stats: list[dict]) -> list[dict]:
+    """This game's scoring categories that actually contributed points, using the
+    league's own scoring settings (via appliedStats) rather than a generic stat line —
+    e.g. a made 45-yard FG shows as "FGA" contributing its point value directly."""
+    if not stats:
+        return []
+    applied = stats[0].get("appliedStats", {})
+    breakdown = [
+        {"label": FANTASY_STAT_LABELS[int(stat_id)], "value": str(round(value, 2))}
+        for stat_id, value in applied.items()
+        if int(stat_id) in FANTASY_STAT_LABELS and value != 0
+    ]
+    breakdown.sort(key=lambda item: float(item["value"]), reverse=True)
+    return breakdown
 
 
 def parse_roster(roster_data: dict) -> list[dict]:
@@ -172,6 +180,7 @@ def parse_roster(roster_data: dict) -> list[dict]:
 
         stats = player_info.get("stats", [])
         points = round(stats[0].get("appliedTotal", 0), 2) if stats else 0
+        scoring_breakdown = _scoring_breakdown(stats)
 
         default_position_id = player_info.get("defaultPositionId", 0)
         if default_position_id == 1:
@@ -193,6 +202,7 @@ def parse_roster(roster_data: dict) -> list[dict]:
                 "position": position,
                 "nfl_team": nfl_team,
                 "points": points,
+                "scoring_breakdown": scoring_breakdown,
                 "slot_id": entry.get("lineupSlotId", 0),
             }
         )

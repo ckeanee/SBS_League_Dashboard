@@ -90,6 +90,21 @@ def get_all_teams() -> list[dict]:
     return sorted(all_teams, key=lambda t: (t["team"]["league_name"], -t["wins"]))
 
 
+SCORING_PENALTY_ADJUSTMENT = -8.0
+
+
+def _count_scoring_penalties(data: dict, team_id: int) -> int:
+    """How many weeks this season a team has taken the league's -8 scoring adjustment
+    (shown on ESPN's own boxscore as "Miscellaneous Scoring" / "Scoring Adjustment")."""
+    count = 0
+    for matchup in data.get("schedule", []):
+        for side in ("home", "away"):
+            participant = matchup.get(side, {})
+            if participant.get("teamId") == team_id and participant.get("adjustment") == SCORING_PENALTY_ADJUSTMENT:
+                count += 1
+    return count
+
+
 def process_league_standings(data: dict, league_name: str) -> list[dict]:
     """Process league data into standings records."""
     if not data or "teams" not in data:
@@ -112,6 +127,7 @@ def process_league_standings(data: dict, league_name: str) -> list[dict]:
                 "points_for": record.get("pointsFor", 0),
                 "points_against": record.get("pointsAgainst", 0),
                 "transactions": team.get("transactionCounter", {}).get("acquisitions", 0),
+                "scoring_penalties": _count_scoring_penalties(data, team.get("id")),
                 "streak": streak,
             }
         )

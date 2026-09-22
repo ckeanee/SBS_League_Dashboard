@@ -12,3 +12,8 @@ class TeamRef(BaseModel):
 class LeagueInfo(BaseModel):
     name: str
     id: str
+
+
+class StatLineItem(BaseModel):
+    label: str
+    value: str

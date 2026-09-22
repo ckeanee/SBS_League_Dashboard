@@ -30,6 +30,33 @@ TRANSACTIONS_API_URL = (
     "&view=mTeam&view=mTransactions2&view=modular&view=mNav"
 )
 
+# ESPN scoring statId -> the abbreviation ESPN's own "Scoring Breakdown" boxscore view
+# uses for it (e.g. 84 -> "FGA"). ESPN doesn't expose this mapping in any API response —
+# it's baked into their frontend JS — so this was reverse-engineered by cross-referencing
+# this league's own scoringSettings.scoringItems (statId -> points-per-occurrence) and
+# real players' appliedStats against ESPN's own displayed Scoring Breakdown page for the
+# same games, matching column totals until every statId we've actually seen resolved
+# unambiguously. Covers every statId observed in this league's boxscores through week 3;
+# an id not in this map just won't get a labeled line (never silently mislabeled).
+FANTASY_STAT_LABELS: dict[int, str] = {
+    20: "INT",
+    79: "FGM49",
+    82: "FGM39",
+    84: "FGA",
+    87: "XPA",
+    88: "XPM",
+    138: "NO",
+    141: "IN20",
+    145: "PTTB",
+    148: "PTA44",
+    149: "PTA42",
+    150: "PTA40",
+    151: "PTA38",
+    198: "FG59",
+    200: "FGM59",
+    201: "FG60+",
+}
+
 # NFL Team ID mapping
 NFL_TEAMS = {
     2: "BUF", 15: "MIA", 17: "NE", 20: "NYJ",

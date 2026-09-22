@@ -5,6 +5,7 @@ import { useCurrentWeek, useSeasons } from './api/queries'
 import { BottomNav } from './components/BottomNav'
 import { AdminPage } from './pages/AdminPage'
 import { HomePage } from './pages/HomePage'
+import { MatchupPage } from './pages/MatchupPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { ScoreboardPage } from './pages/ScoreboardPage'
 import { TeamsPage } from './pages/TeamsPage'
@@ -83,6 +84,8 @@ export default function App() {
           <Route path="/teams/:leagueId/:teamId" element={<TeamsPage />} />
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/scoreboard" element={<ScoreboardPage />} />
+          <Route path="/matchup/playoffs/:matchupId" element={<MatchupPage />} />
+          <Route path="/matchup/:leagueId/:week/:teamId" element={<MatchupPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>

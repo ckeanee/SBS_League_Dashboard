@@ -20,6 +20,7 @@ export interface StandingsRow {
   points_for: number
   points_against: number
   transactions: number
+  scoring_penalties: number
   streak: string
 }
 
@@ -70,6 +71,7 @@ export interface ScheduleGame {
   opp_score: number | null
   is_current: boolean
   game_type: string
+  matchup_id: number | null
 }
 
 export interface BoxscorePlayer {
@@ -78,6 +80,7 @@ export interface BoxscorePlayer {
   position: string
   nfl_team: string
   points: number
+  scoring_breakdown: StatLineItem[]
 }
 
 export interface BoxscoreTeam {
@@ -214,6 +217,7 @@ export interface PlayerNewsItem {
 export interface WeeklyPoints {
   week: number
   points: number
+  scoring_breakdown: StatLineItem[]
 }
 
 export interface StatSeasonRow {
@@ -284,4 +288,9 @@ export interface TransactionHighlights {
   week: number
   most_added: TransactionHighlight | null
   most_dropped: TransactionHighlight | null
+}
+
+export interface StatLineItem {
+  label: string
+  value: string
 }

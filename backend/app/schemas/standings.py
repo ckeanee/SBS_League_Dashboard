@@ -12,6 +12,7 @@ class StandingsRow(BaseModel):
     points_for: float
     points_against: float
     transactions: int
+    scoring_penalties: int
     streak: str
 
 

@@ -1,9 +1,9 @@
 import { Trophy } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { useCurrentWeek, useLeagues, usePlayoffMatchups, useSeasons, useWeeklyStats } from '../api/queries'
 import { MatchupCard } from '../components/MatchupCard'
-import { PlayoffBoxscores } from '../components/PlayoffBoxscores'
 import { RegularSeasonColumn } from '../components/RegularSeasonColumn'
 import { RefreshButton } from '../components/ui/RefreshButton'
 import { Select } from '../components/ui/Select'
@@ -12,6 +12,7 @@ import { WeeklyStatsPanel } from '../components/WeeklyStatsPanel'
 import { MATCHUP_TYPE_COLORS } from '../lib/constants'
 
 export function ScoreboardPage() {
+  const navigate = useNavigate()
   const { data: currentWeekData } = useCurrentWeek()
   const { data: leagues } = useLeagues()
   const { data: seasonsData } = useSeasons()
@@ -60,7 +61,7 @@ export function ScoreboardPage() {
             {playoffMatchups.map((m) => (
               <MatchupCard
                 key={m.id}
-                expandLabel="Full Box Score"
+                onOpenMatchup={() => navigate(`/matchup/playoffs/${m.id}`)}
                 badge={{ label: m.round_type, color: MATCHUP_TYPE_COLORS[m.round_type] ?? '#a78bfa' }}
                 home={{
                   name: m.home.team.team_name,
@@ -82,17 +83,7 @@ export function ScoreboardPage() {
                   leagueId: m.away.team.league_id,
                   teamId: m.away.team.team_id,
                 }}
-              >
-                <PlayoffBoxscores
-                  homeLeagueId={m.home.team.league_id}
-                  awayLeagueId={m.away.team.league_id}
-                  homeTeamId={m.home.team.team_id}
-                  awayTeamId={m.away.team.team_id}
-                  homeName={m.home.team.team_name}
-                  awayName={m.away.team.team_name}
-                  week={m.week}
-                />
-              </MatchupCard>
+              />
             ))}
           </div>
         )

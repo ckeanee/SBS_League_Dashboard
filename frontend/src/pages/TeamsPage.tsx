@@ -1,11 +1,9 @@
-import { ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { useBoxscore, useTeam, useTeamSchedule, useTeams, useTeamTransactions } from '../api/queries'
+import { useTeam, useTeamSchedule, useTeams, useTeamTransactions } from '../api/queries'
 import type { ScheduleGame, TeamRef } from '../api/types'
 import { ActivityFeed } from '../components/ActivityFeed'
-import { BoxscoreRoster } from '../components/BoxscoreRoster'
 import { PlayerModal } from '../components/PlayerModal'
 import { RosterList } from '../components/RosterList'
 import { TeamBadge } from '../components/TeamBadge'
@@ -120,7 +118,6 @@ export function TeamsPage() {
                     game={game}
                     leagueId={selected!.leagueId}
                     teamId={selected!.teamId}
-                    teamName={detail.team.team_name}
                   />
                 ))}
               </div>
@@ -176,25 +173,10 @@ const GAME_TYPE_COLORS: Record<string, string> = {
   Championship: '#a78bfa',
 }
 
-function ScheduleRow({
-  game,
-  leagueId,
-  teamId,
-  teamName,
-}: {
-  game: ScheduleGame
-  leagueId: string
-  teamId: number
-  teamName: string
-}) {
+function ScheduleRow({ game, leagueId, teamId }: { game: ScheduleGame; leagueId: string; teamId: number }) {
+  const navigate = useNavigate()
   const isPlayed = game.result !== '-'
-  // Playoff games can be cross-league; the opponent's roster lives in their own league's
-  // boxscore, so this only resolves both sides for a regular-season (same-league) game.
-  const isCrossLeague = game.game_type !== 'Regular Season' && game.opponent.league_id !== leagueId
-  const { data: box } = useBoxscore(leagueId, isPlayed && !isCrossLeague ? game.week : undefined)
-
-  const mine = box?.flatMap((m) => [m.home, m.away]).find((t) => t.team.team_id === teamId)
-  const theirs = box?.flatMap((m) => [m.home, m.away]).find((t) => t.team.team_name === game.opponent.team_name)
+  const matchupHref = game.matchup_id !== null ? `/matchup/playoffs/${game.matchup_id}` : `/matchup/${leagueId}/${game.week}/${teamId}`
 
   const resultStyles: Record<string, string> = {
     W: 'text-good',
@@ -204,70 +186,49 @@ function ScheduleRow({
   }
 
   return (
-    <details className="group rounded-xl border border-line bg-surface/70 backdrop-blur-sm overflow-hidden">
-      <summary className="cursor-pointer list-none px-4 py-3 hover:bg-white/[0.02]">
-        <div className="flex items-center gap-4">
-          <div className="text-center w-14 shrink-0">
-            <div className="text-[10px] text-ink-500 font-semibold uppercase tracking-wide">Week</div>
-            <div className="text-xl font-display font-bold tabular-nums">{game.week}</div>
-            {game.is_current ? <div className="text-[9px] text-bad font-semibold mt-0.5">CURRENT</div> : null}
-            {game.game_type !== 'Regular Season' ? (
-              <span
-                className="inline-block text-[9px] font-bold text-black/80 rounded px-1.5 py-0.5 mt-1"
-                style={{ backgroundColor: GAME_TYPE_COLORS[game.game_type] ?? '#a78bfa' }}
-              >
-                {game.game_type}
-              </span>
-            ) : null}
-          </div>
-          <div className="flex-1 flex items-center gap-3 min-w-0">
-            <span className="text-ink-500 font-semibold w-5 text-sm">{game.location}</span>
-            {game.opponent_logo ? (
-              <img src={game.opponent_logo} alt="" className="w-9 h-9 rounded-full ring-1 ring-white/10" />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-white/5" />
-            )}
-            <OpponentLink opponent={game.opponent} />
-          </div>
-          <div className="text-right shrink-0">
-            {isPlayed ? (
-              <div className="font-semibold text-ink-300 tabular-nums">
-                {game.team_score} - {game.opp_score}
-              </div>
-            ) : (
-              <div className="text-xs text-ink-500">Not played</div>
-            )}
-          </div>
-          <div className={`w-9 text-center text-2xl font-display font-bold shrink-0 ${resultStyles[game.result]}`}>
-            {game.result}
-          </div>
-          {isPlayed ? (
-            <ChevronDown className="w-4 h-4 text-ink-500 transition-transform group-open:rotate-180 shrink-0" />
+    <div
+      onClick={isPlayed ? () => navigate(matchupHref) : undefined}
+      className={`rounded-xl border border-line bg-surface/70 backdrop-blur-sm px-4 py-3 ${
+        isPlayed ? 'cursor-pointer hover:bg-white/[0.02]' : ''
+      }`}
+    >
+      <div className="flex items-center gap-4">
+        <div className="text-center w-14 shrink-0">
+          <div className="text-[10px] text-ink-500 font-semibold uppercase tracking-wide">Week</div>
+          <div className="text-xl font-display font-bold tabular-nums">{game.week}</div>
+          {game.is_current ? <div className="text-[9px] text-bad font-semibold mt-0.5">CURRENT</div> : null}
+          {game.game_type !== 'Regular Season' ? (
+            <span
+              className="inline-block text-[9px] font-bold text-black/80 rounded px-1.5 py-0.5 mt-1"
+              style={{ backgroundColor: GAME_TYPE_COLORS[game.game_type] ?? '#a78bfa' }}
+            >
+              {game.game_type}
+            </span>
           ) : null}
         </div>
-      </summary>
-
-      {isPlayed ? (
-        <div className="px-4 pb-4 pt-1 border-t border-line">
-          {isCrossLeague ? (
-            <p className="text-xs text-ink-500 pt-3">Scoring details aren't available for cross-division playoff games yet.</p>
-          ) : mine && theirs ? (
-            <div className="grid grid-cols-2 gap-4 pt-3">
-              <div>
-                <p className="text-xs font-semibold text-ink-400 mb-1.5">{teamName}</p>
-                <BoxscoreRoster roster={mine.roster} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-ink-400 mb-1.5">{game.opponent.team_name}</p>
-                <BoxscoreRoster roster={theirs.roster} />
-              </div>
+        <div className="flex-1 flex items-center gap-3 min-w-0">
+          <span className="text-ink-500 font-semibold w-5 text-sm">{game.location}</span>
+          {game.opponent_logo ? (
+            <img src={game.opponent_logo} alt="" className="w-9 h-9 rounded-full ring-1 ring-white/10" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-white/5" />
+          )}
+          <OpponentLink opponent={game.opponent} />
+        </div>
+        <div className="text-right shrink-0">
+          {isPlayed ? (
+            <div className="font-semibold text-ink-300 tabular-nums">
+              {game.team_score} - {game.opp_score}
             </div>
           ) : (
-            <LoadingState />
+            <div className="text-xs text-ink-500">Not played</div>
           )}
         </div>
-      ) : null}
-    </details>
+        <div className={`w-9 text-center text-2xl font-display font-bold shrink-0 ${resultStyles[game.result]}`}>
+          {game.result}
+        </div>
+      </div>
+    </div>
   )
 }
 

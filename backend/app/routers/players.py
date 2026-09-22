@@ -4,7 +4,7 @@ from app.core.errors import NotFoundError
 from app.schemas.players import PlayerDetail, PlayerRanking
 from app.services.espn_client import get_player_bio
 from app.services.news_service import get_player_news
-from app.services.player_rankings_service import get_player_rankings
+from app.services.player_rankings_service import get_player_rankings, get_player_weekly_performance
 from app.services.player_stats_service import get_player_stats
 from app.services.standings_service import get_player_owners
 
@@ -29,7 +29,8 @@ def player_detail(player_id: int, league_id: str = Query(...)):
 
     return {
         **bio,
+        "weekly_points": get_player_weekly_performance(league_id, str(player_id)),
         "owners": get_player_owners(player_id),
         "news": get_player_news(player_id),
-        "stats": get_player_stats(player_id),
+        "stats": get_player_stats(player_id, bio["position"]),
     }

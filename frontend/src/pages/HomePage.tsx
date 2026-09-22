@@ -1,6 +1,6 @@
 import { Activity, BarChart3, Flame, Swords, Trophy } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import {
   useAllMatchups,
@@ -25,6 +25,7 @@ import { EmptyState, LoadingState } from '../components/ui/States'
 import { MATCHUP_TYPE_COLORS } from '../lib/constants'
 
 export function HomePage() {
+  const navigate = useNavigate()
   const { data: standings } = useStandings()
   const { data: playoffStandings } = usePlayoffStandings()
   const { data: allMatchups } = useAllMatchups()
@@ -258,6 +259,7 @@ export function HomePage() {
                 .map((m) => (
                   <MatchupCard
                     key={m.id}
+                    onOpenMatchup={() => navigate(`/matchup/playoffs/${m.id}`)}
                     badge={{ label: m.round_type, color: MATCHUP_TYPE_COLORS[m.round_type] ?? '#a78bfa' }}
                     home={{
                       name: m.home.team.team_name,
@@ -341,6 +343,7 @@ function LiveMatchupColumn({
   week: number | null
   matchups: RegularMatchup[]
 }) {
+  const navigate = useNavigate()
   const { data: boxscores } = useBoxscore(leagueId, week ?? undefined)
 
   return (
@@ -356,6 +359,7 @@ function LiveMatchupColumn({
           return (
             <MatchupCard
               key={`${m.home.team_id}-${m.away.team_id}`}
+              onOpenMatchup={() => navigate(`/matchup/${leagueId}/${week}/${m.home.team_id}`)}
               home={{
                 name: m.home.team_name,
                 owner: m.home.owner,

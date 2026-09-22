@@ -121,6 +121,14 @@ export function usePlayoffMatchups(season: number | undefined, week?: number) {
   })
 }
 
+export function usePlayoffMatchup(matchupId: number | undefined) {
+  return useQuery({
+    queryKey: ['playoff-matchup', matchupId],
+    queryFn: () => api.get<PlayoffMatchupRead>(`/matchups/playoffs/${matchupId}`),
+    enabled: matchupId !== undefined,
+  })
+}
+
 export function useCreatePlayoffMatchup() {
   const queryClient = useQueryClient()
   return useMutation({

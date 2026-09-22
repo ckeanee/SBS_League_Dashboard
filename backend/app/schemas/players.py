@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from app.schemas.common import TeamRef
+from app.schemas.common import StatLineItem, TeamRef
 
 
 class PlayerNewsItem(BaseModel):
@@ -15,6 +15,7 @@ class PlayerNewsItem(BaseModel):
 class WeeklyPoints(BaseModel):
     week: int
     points: float
+    scoring_breakdown: list[StatLineItem] = []
 
 
 class StatSeasonRow(BaseModel):

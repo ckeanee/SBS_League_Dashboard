@@ -1,5 +1,6 @@
+import { useNavigate } from 'react-router-dom'
+
 import { useBoxscore } from '../api/queries'
-import { BoxscoreRoster } from './BoxscoreRoster'
 import { MatchupCard } from './MatchupCard'
 import { LoadingState, EmptyState } from './ui/States'
 
@@ -7,13 +8,12 @@ interface RegularSeasonColumnProps {
   leagueName: string
   leagueId: string
   week: number | null
-  /** Preview mode (Home page): show only the top N scorers. Omit for the full box score (Scoreboard). */
-  limit?: number
 }
 
-/** One league's regular-season matchups + expandable box scores for a given week.
- * Shared by the Home page (compact preview) and the Scoreboard page (full box score). */
-export function RegularSeasonColumn({ leagueName, leagueId, week, limit }: RegularSeasonColumnProps) {
+/** One league's regular-season matchups for a given week — click a card to see the full
+ * box score on its own page. Used by the Scoreboard page. */
+export function RegularSeasonColumn({ leagueName, leagueId, week }: RegularSeasonColumnProps) {
+  const navigate = useNavigate()
   const { data: boxscores, isLoading } = useBoxscore(leagueId, week ?? undefined)
 
   return (
@@ -27,7 +27,7 @@ export function RegularSeasonColumn({ leagueName, leagueId, week, limit }: Regul
         boxscores.map((m) => (
           <MatchupCard
             key={`${m.home.team.team_id}-${m.away.team.team_id}`}
-            expandLabel={limit ? 'Top Scorers' : 'Full Box Score'}
+            onOpenMatchup={() => navigate(`/matchup/${leagueId}/${week}/${m.home.team.team_id}`)}
             home={{
               name: m.home.team.team_name,
               owner: m.home.team.owner,
@@ -46,18 +46,7 @@ export function RegularSeasonColumn({ leagueName, leagueId, week, limit }: Regul
               leagueId: m.away.team.league_id,
               teamId: m.away.team.team_id,
             }}
-          >
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-semibold text-ink-400 mb-1.5">{m.home.team.team_name}</p>
-                <BoxscoreRoster roster={m.home.roster} limit={limit} />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-ink-400 mb-1.5">{m.away.team.team_name}</p>
-                <BoxscoreRoster roster={m.away.roster} limit={limit} />
-              </div>
-            </div>
-          </MatchupCard>
+          />
         ))
       )}
     </div>

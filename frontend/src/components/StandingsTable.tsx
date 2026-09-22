@@ -127,7 +127,7 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
   )
 }
 
-type DivisionSortKey = 'team' | 'record' | 'points_for' | 'points_against' | 'transactions'
+type DivisionSortKey = 'team' | 'record' | 'points_for' | 'points_against' | 'transactions' | 'scoring_penalties'
 
 const DIVISION_COMPARATORS: Record<DivisionSortKey, (a: StandingsRow, b: StandingsRow) => number> = {
   team: (a, b) => a.team.team_name.localeCompare(b.team.team_name),
@@ -136,6 +136,7 @@ const DIVISION_COMPARATORS: Record<DivisionSortKey, (a: StandingsRow, b: Standin
   points_for: (a, b) => a.points_for - b.points_for,
   points_against: (a, b) => a.points_against - b.points_against,
   transactions: (a, b) => a.transactions - b.transactions,
+  scoring_penalties: (a, b) => a.scoring_penalties - b.scoring_penalties,
 }
 
 const DIVISION_DEFAULT_DIRECTION: Record<DivisionSortKey, SortDirection> = {
@@ -144,6 +145,7 @@ const DIVISION_DEFAULT_DIRECTION: Record<DivisionSortKey, SortDirection> = {
   points_for: 'desc',
   points_against: 'desc',
   transactions: 'desc',
+  scoring_penalties: 'desc',
 }
 
 export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
@@ -214,6 +216,15 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
+              className="py-2.5 pr-2"
+            />
+            <SortableHeader
+              label="-8s"
+              sortKey="scoring_penalties"
+              activeKey={sort?.key ?? null}
+              direction={sort?.direction ?? 'asc'}
+              onSort={handleSort}
+              align="center"
               className="py-2.5 pr-4"
             />
           </tr>
@@ -233,7 +244,8 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
               </td>
               <td className="py-2 pr-2 text-center tabular-nums">{row.points_for.toFixed(1)}</td>
               <td className="py-2 pr-2 text-center tabular-nums">{row.points_against.toFixed(1)}</td>
-              <td className="py-2 pr-4 text-center tabular-nums">{row.transactions}</td>
+              <td className="py-2 pr-2 text-center tabular-nums">{row.transactions}</td>
+              <td className="py-2 pr-4 text-center tabular-nums">{row.scoring_penalties}</td>
             </tr>
           ))}
         </tbody>

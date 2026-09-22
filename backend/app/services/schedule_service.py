@@ -105,6 +105,7 @@ def _playoff_games(db: Session, league_id: str, team_id: int, season: int, curre
                 "opp_score": opp_score,
                 "is_current": matchup.week == current_week,
                 "game_type": matchup.round_type or "Playoff",
+                "matchup_id": matchup.id,
             }
         )
     return games

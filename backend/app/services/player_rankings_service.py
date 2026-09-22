@@ -73,3 +73,31 @@ def get_player_rankings() -> list[dict]:
     rankings.sort(key=lambda r: r["total_points"], reverse=True)
     player_rankings_cache["rankings"] = rankings
     return rankings
+
+
+def get_player_weekly_performance(league_id: str, player_id: str) -> list[dict]:
+    """This player's points and scoring breakdown for every week played so far this
+    season, scanned week-by-week from that league's boxscores.
+
+    The roster-overview endpoint (fetch_league_data) only embeds a narrow window of a
+    player's actual weekly stats — current week plus projections plus the season total —
+    not full season history, so it can't answer "every week that's happened" on its own.
+    """
+    current_week = get_current_week()
+    performance = []
+
+    for week in range(1, current_week + 1):
+        for matchup in get_matchup_roster_details(league_id, week):
+            for side in ("home_team", "away_team"):
+                for player in matchup[side]["roster"]:
+                    if player.get("player_id") == player_id:
+                        performance.append(
+                            {
+                                "week": week,
+                                "points": player["points"],
+                                "scoring_breakdown": player["scoring_breakdown"],
+                            }
+                        )
+
+    performance.sort(key=lambda w: w["week"])
+    return performance

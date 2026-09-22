@@ -39,3 +39,6 @@ class ScheduleGame(BaseModel):
     opp_score: float | None
     is_current: bool
     game_type: str
+    # Set only for a stored playoff game — the id needed to link to /matchup/playoffs/{id}.
+    # None for a regular-season game, which links via league/week/team instead.
+    matchup_id: int | None = None

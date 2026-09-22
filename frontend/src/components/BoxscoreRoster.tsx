@@ -17,6 +17,7 @@ export function BoxscoreRoster({ roster, limit }: { roster: BoxscorePlayer[]; li
           subtitle={limit ? undefined : `${p.nfl_team} - ${p.position}`}
           trailing={p.points.toString()}
           points={p.points}
+          statLine={limit ? undefined : p.scoring_breakdown}
         />
       ))}
       {!limit ? (

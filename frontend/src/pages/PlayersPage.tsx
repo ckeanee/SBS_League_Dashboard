@@ -1,4 +1,4 @@
-import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, ChevronLeft, ChevronRight, type LucideIcon, Star } from 'lucide-react'
+import { ArrowDownCircle, ArrowLeftRight, ArrowUpCircle, ChevronLeft, ChevronRight, type LucideIcon, Search, Star, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -33,6 +33,7 @@ export function PlayersPage() {
   const [highlightsWeek, setHighlightsWeek] = useState<number | null>(null)
   const { data: highlights } = useTransactionHighlights(highlightsWeek ?? undefined)
   const [tab, setTab] = useState<PositionTab>('Overall')
+  const [search, setSearch] = useState('')
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
     key: 'total_points',
     direction: 'desc',
@@ -48,7 +49,9 @@ export function PlayersPage() {
 
   const filtered = useMemo(() => {
     if (!rankings) return []
-    const base = tab === 'Overall' ? rankings : rankings.filter((r) => r.position === tab)
+    let base = tab === 'Overall' ? rankings : rankings.filter((r) => r.position === tab)
+    const query = search.trim().toLowerCase()
+    if (query) base = base.filter((r) => r.name.toLowerCase().includes(query))
     const sorted = [...base].sort((a, b) => {
       const { key } = sort
       if (key === 'name' || key === 'position') {
@@ -58,10 +61,10 @@ export function PlayersPage() {
     })
     if (sort.direction === 'desc') sorted.reverse()
     return sorted
-  }, [rankings, tab, sort])
+  }, [rankings, tab, search, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  useEffect(() => setPage(1), [tab, sort])
+  useEffect(() => setPage(1), [tab, search, sort])
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
   }, [page, totalPages])
@@ -103,24 +106,45 @@ export function PlayersPage() {
         icon={Star}
         subtitle="Season-long fantasy points, deduplicated across every league"
       >
-        <div className="flex gap-1.5 mb-4">
-          {POSITION_TABS.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === t ? 'bg-brand-500/15 text-brand-400' : 'text-ink-400 hover:text-ink-100 hover:bg-white/5'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <div className="flex gap-1.5">
+            {POSITION_TABS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  tab === t ? 'bg-brand-500/15 text-brand-400' : 'text-ink-400 hover:text-ink-100 hover:bg-white/5'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative sm:ml-auto sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search players…"
+              className="w-full rounded-lg border border-line bg-surface/70 pl-9 pr-8 py-1.5 text-sm text-ink-100 placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            />
+            {search ? (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {isLoading ? (
           <LoadingState label="Crunching every league's boxscores…" />
         ) : filtered.length === 0 ? (
-          <EmptyState label="No player data available yet" />
+          <EmptyState label={search ? `No players matching "${search}"` : 'No player data available yet'} />
         ) : (
           <Card className="overflow-hidden">
             <table className="w-full text-sm">

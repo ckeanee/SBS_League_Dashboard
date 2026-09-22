@@ -18,6 +18,7 @@ interface PlayerModalProps {
 export function PlayerModal({ leagueId, playerId, onClose }: PlayerModalProps) {
   const { data: player, isLoading } = usePlayerDetail(leagueId, playerId)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(null)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -41,8 +42,15 @@ export function PlayerModal({ leagueId, playerId, onClose }: PlayerModalProps) {
     if (availableYears.length > 0 && selectedYear === null) setSelectedYear(availableYears[0])
   }, [availableYears, selectedYear])
 
+  useEffect(() => {
+    if (player && player.weekly_points.length > 0 && selectedWeek === null) {
+      setSelectedWeek(player.weekly_points[player.weekly_points.length - 1].week)
+    }
+  }, [player, selectedWeek])
+
   const maxPoints = player ? Math.max(1, ...player.weekly_points.map((w) => w.points)) : 1
   const categoriesForYear = player?.stats.filter((c) => c.seasons.some((s) => s.year === selectedYear)) ?? []
+  const selectedWeekData = player?.weekly_points.find((w) => w.week === selectedWeek)
 
   return (
     <div
@@ -95,18 +103,47 @@ export function PlayerModal({ leagueId, playerId, onClose }: PlayerModalProps) {
                 {player.weekly_points.length === 0 ? (
                   <EmptyState label="No games played yet this season" />
                 ) : (
-                  <div className="flex items-end gap-2 h-24">
-                    {player.weekly_points.map((w) => (
-                      <div key={w.week} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                        <span className="text-xs font-bold tabular-nums text-ink-200">{w.points}</span>
-                        <div
-                          className="w-full rounded-t bg-brand-500/70"
-                          style={{ height: `${Math.max(4, (w.points / maxPoints) * 60)}px` }}
-                        />
-                        <span className="text-[10px] text-ink-500">W{w.week}</span>
+                  <>
+                    <div className="flex items-end gap-2 h-24">
+                      {player.weekly_points.map((w) => {
+                        const isSelected = w.week === selectedWeek
+                        return (
+                          <button
+                            key={w.week}
+                            onClick={() => setSelectedWeek(w.week)}
+                            className="flex-1 flex flex-col items-center justify-end gap-1 h-full"
+                          >
+                            <span className={`text-xs font-bold tabular-nums ${isSelected ? 'text-brand-400' : 'text-ink-200'}`}>
+                              {w.points}
+                            </span>
+                            <div
+                              className={`w-full rounded-t transition-colors ${isSelected ? 'bg-brand-400' : 'bg-brand-500/70 hover:bg-brand-500'}`}
+                              style={{ height: `${Math.max(4, (w.points / maxPoints) * 60)}px` }}
+                            />
+                            <span className={`text-[10px] ${isSelected ? 'text-brand-400 font-semibold' : 'text-ink-500'}`}>
+                              W{w.week}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {selectedWeekData ? (
+                      <div className="mt-3 pt-3 border-t border-line">
+                        <p className="text-xs font-semibold text-ink-400 mb-1.5">Week {selectedWeekData.week} Scoring Breakdown</p>
+                        {selectedWeekData.scoring_breakdown.length > 0 ? (
+                          <div className="flex flex-wrap gap-x-3 gap-y-1">
+                            {selectedWeekData.scoring_breakdown.map((s, i) => (
+                              <span key={i} className="text-xs text-ink-400">
+                                <span className="text-ink-100 font-semibold">{s.value}</span> {s.label}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-ink-500">No scoring stats this week</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    ) : null}
+                  </>
                 )}
               </section>
 

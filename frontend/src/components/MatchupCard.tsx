@@ -23,6 +23,10 @@ interface MatchupCardProps {
   badge?: { label: string; color: string }
   expandLabel?: string
   children?: ReactNode
+  /** Navigate to this matchup's full detail page. Team names inside stay their own
+   * links (they stop propagation on click), so this only fires for clicks elsewhere
+   * on the score rows — the score itself, the empty space, etc. */
+  onOpenMatchup?: () => void
 }
 
 function ScoreRow({ side }: { side: MatchupCardSide }) {
@@ -46,7 +50,7 @@ function ScoreRow({ side }: { side: MatchupCardSide }) {
 
 /** Shared team-vs-team card used on Home, Scoreboard, and Admin — the single place
  * this markup lives, instead of being copy-pasted across three pages. */
-export function MatchupCard({ home, away, badge, expandLabel = 'Top Scorers', children }: MatchupCardProps) {
+export function MatchupCard({ home, away, badge, expandLabel = 'Top Scorers', children, onOpenMatchup }: MatchupCardProps) {
   return (
     <Card className="mb-3 overflow-hidden transition-colors hover:border-line-strong">
       {badge ? (
@@ -55,7 +59,10 @@ export function MatchupCard({ home, away, badge, expandLabel = 'Top Scorers', ch
         </div>
       ) : null}
 
-      <div className="divide-y divide-line/60">
+      <div
+        className={`divide-y divide-line/60 ${onOpenMatchup ? 'cursor-pointer hover:bg-white/[0.02]' : ''}`}
+        onClick={onOpenMatchup}
+      >
         <ScoreRow side={home} />
         <ScoreRow side={away} />
       </div>

@@ -6,8 +6,17 @@ logger = logging.getLogger(__name__)
 
 STATS_API_URL = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/{player_id}/stats"
 
+# ESPN always returns every category it has any history for (a kicker often carries an
+# all-zero "passing" category from some trick play years ago, etc.) — this league only
+# rosters K/P/QB, so keep just the category that's actually relevant to each.
+RELEVANT_CATEGORIES = {
+    "K": {"kicking"},
+    "P": {"punting"},
+    "QB": {"passing", "rushing"},
+}
 
-def get_player_stats(player_id: int) -> list[dict]:
+
+def get_player_stats(player_id: int, position: str | None = None) -> list[dict]:
     """Real (not fantasy-scoring) NFL stats by category and season, e.g. a kicker's
     field goals made/attempted per distance range. Non-fatal on failure — this is
     supplementary detail, not core to the player view that's requesting it."""
@@ -21,9 +30,13 @@ def get_player_stats(player_id: int) -> list[dict]:
 
     teams = data.get("teams", {})
     team_names_by_id = {team["id"]: team.get("displayName", "") for team in teams.values()}
+    relevant_names = RELEVANT_CATEGORIES.get(position or "", None)
 
     categories = []
     for category in data.get("categories", []):
+        if relevant_names is not None and category.get("name", "") not in relevant_names:
+            continue
+
         seasons = []
         for row in category.get("statistics", []):
             seasons.append(
