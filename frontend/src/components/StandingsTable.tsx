@@ -7,6 +7,7 @@ import { Card } from './ui/Section'
 import { SortableHeader, type SortDirection } from './ui/SortableHeader'
 
 type PlayoffSortKey = 'team' | 'division' | 'wins' | 'gb' | 'points_for'
+type PlayoffHeaderKey = PlayoffSortKey | 'seed'
 
 // Ascending always means "natural numeric/alphabetical order" — the direction map below
 // just decides which end looks best sitting at the top on the very first click.
@@ -30,8 +31,15 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
   // null = no column sort applied yet — show the incoming seed order the backend already
   // computed (division winners first, tiebreakers applied, etc.), not a simplistic re-sort.
   const [sort, setSort] = useState<{ key: PlayoffSortKey; direction: SortDirection } | null>(null)
+  // When no sort is active, the Seed header shows as the "active" one — it's what you're
+  // effectively sorted by (the backend's own seed order) until you pick something else.
+  const activeKey: PlayoffHeaderKey = sort?.key ?? 'seed'
 
-  const handleSort = (key: PlayoffSortKey) => {
+  const handleSort = (key: PlayoffHeaderKey) => {
+    if (key === 'seed') {
+      setSort(null)
+      return
+    }
     setSort((prev) =>
       prev && prev.key === key
         ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
@@ -51,11 +59,19 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wide text-ink-500 border-b border-line">
-            <th className="py-3 pl-4 pr-2 font-semibold text-center">Seed</th>
+            <SortableHeader
+              label="Seed"
+              sortKey="seed"
+              activeKey={activeKey}
+              direction={sort?.direction ?? 'asc'}
+              onSort={handleSort}
+              align="center"
+              className="py-3 pl-4 pr-2"
+            />
             <SortableHeader
               label="Team"
               sortKey="team"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               className="py-3 pr-2"
@@ -63,7 +79,7 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
             <SortableHeader
               label="Division"
               sortKey="division"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -72,7 +88,7 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
             <SortableHeader
               label="W"
               sortKey="wins"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -81,7 +97,7 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
             <SortableHeader
               label="GB"
               sortKey="gb"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -90,7 +106,7 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
             <SortableHeader
               label="PF"
               sortKey="points_for"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -128,6 +144,7 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
 }
 
 type DivisionSortKey = 'team' | 'record' | 'points_for' | 'points_against' | 'transactions' | 'scoring_penalties'
+type DivisionHeaderKey = DivisionSortKey | 'rank'
 
 const DIVISION_COMPARATORS: Record<DivisionSortKey, (a: StandingsRow, b: StandingsRow) => number> = {
   team: (a, b) => a.team.team_name.localeCompare(b.team.team_name),
@@ -152,8 +169,15 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
   // null = no column sort applied yet — show the incoming rank order the backend already
   // computed, not a simplistic re-sort (which can disagree on tiebreakers).
   const [sort, setSort] = useState<{ key: DivisionSortKey; direction: SortDirection } | null>(null)
+  // When no sort is active, the # header shows as the "active" one — it's what you're
+  // effectively sorted by (the backend's own rank order) until you pick something else.
+  const activeKey: DivisionHeaderKey = sort?.key ?? 'rank'
 
-  const handleSort = (key: DivisionSortKey) => {
+  const handleSort = (key: DivisionHeaderKey) => {
+    if (key === 'rank') {
+      setSort(null)
+      return
+    }
     setSort((prev) =>
       prev && prev.key === key
         ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
@@ -173,11 +197,19 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wide text-ink-500 border-b border-line">
-            <th className="py-2.5 pl-4 pr-2 font-semibold text-center">#</th>
+            <SortableHeader
+              label="#"
+              sortKey="rank"
+              activeKey={activeKey}
+              direction={sort?.direction ?? 'asc'}
+              onSort={handleSort}
+              align="center"
+              className="py-2.5 pl-4 pr-2"
+            />
             <SortableHeader
               label="Team"
               sortKey="team"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               className="py-2.5 pr-2"
@@ -185,7 +217,7 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <SortableHeader
               label="Record"
               sortKey="record"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -194,7 +226,7 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <SortableHeader
               label="PF"
               sortKey="points_for"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -203,7 +235,7 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <SortableHeader
               label="PA"
               sortKey="points_against"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -212,7 +244,7 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <SortableHeader
               label="Moves"
               sortKey="transactions"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"
@@ -221,7 +253,7 @@ export function DivisionStandingsTable({ rows }: { rows: StandingsRow[] }) {
             <SortableHeader
               label="-8s"
               sortKey="scoring_penalties"
-              activeKey={sort?.key ?? null}
+              activeKey={activeKey}
               direction={sort?.direction ?? 'asc'}
               onSort={handleSort}
               align="center"

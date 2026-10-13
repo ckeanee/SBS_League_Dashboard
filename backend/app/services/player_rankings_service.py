@@ -1,7 +1,7 @@
 from app.cache import player_rankings_cache
 from app.core.constants import LEAGUES
 from app.services.espn_client import get_matchup_roster_details
-from app.services.standings_service import get_current_week, team_ref
+from app.services.standings_service import get_current_week, get_player_owners
 
 
 def get_player_rankings() -> list[dict]:
@@ -20,7 +20,7 @@ def get_player_rankings() -> list[dict]:
     current_week = get_current_week()
     players: dict[str, dict] = {}
 
-    for league_name, league_id in LEAGUES.items():
+    for league_id in LEAGUES.values():
         for week in range(1, current_week + 1):
             for matchup in get_matchup_roster_details(league_id, week):
                 for side in ("home_team", "away_team"):
@@ -37,25 +37,19 @@ def get_player_rankings() -> list[dict]:
                                 "nfl_team": player["nfl_team"],
                                 "league_id": league_id,
                                 "weeks": {},
-                                "rosters": {},
                             },
                         )
                         entry["weeks"][week] = player["points"]
-                        # Rosters change week to week (waivers/trades) — keep whichever
-                        # team most recently held the player in each league.
-                        team = matchup[side]
-                        entry["rosters"][league_id] = (league_name, team["id"], team["name"])
 
     rankings = []
     for entry in players.values():
         weeks = entry["weeks"]
         games_played = len(weeks)
         total_points = round(sum(weeks.values()), 1)
-        owners = [
-            team_ref(league_id, *entry["rosters"][league_id])
-            for league_id in LEAGUES.values()
-            if league_id in entry["rosters"]
-        ]
+        # Live current-roster lookup, not a reconstruction from past weeks' boxscores —
+        # a player dropped since their last rostered week must show as unowned, not stuck
+        # showing whichever team last had them.
+        owners = get_player_owners(int(entry["player_id"]))
         rankings.append(
             {
                 "player_id": entry["player_id"],
