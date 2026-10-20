@@ -18,6 +18,11 @@ export interface MatchupCardSide {
   subtitle?: string
   leagueId?: string
   teamId?: number
+  /** This side's own pending/live/finished state — drives whether the projected
+   * total below the score still makes sense to show (once finished, the actual
+   * score already tells the whole story). */
+  status?: PlayStatus
+  projTotal?: number
 }
 
 interface MatchupCardProps {
@@ -35,6 +40,7 @@ interface MatchupCardProps {
 }
 
 function ScoreRow({ side }: { side: MatchupCardSide }) {
+  const showProj = side.status && side.status !== 'finished' && side.projTotal !== undefined
   return (
     <div className={`flex items-center justify-between gap-3 px-4 py-3 ${side.winning ? 'bg-brand-500/[0.06]' : ''}`}>
       <TeamBadge
@@ -47,8 +53,11 @@ function ScoreRow({ side }: { side: MatchupCardSide }) {
         leagueId={side.leagueId}
         teamId={side.teamId}
       />
-      <div className={`text-2xl font-display font-bold tabular-nums shrink-0 ${side.winning ? 'text-good' : 'text-ink-500'}`}>
-        {formatScore(side.score)}
+      <div className="flex flex-col items-end shrink-0">
+        <div className={`text-2xl font-display font-bold tabular-nums ${side.winning ? 'text-good' : 'text-ink-500'}`}>
+          {formatScore(side.score)}
+        </div>
+        {showProj ? <div className="text-[10px] text-ink-500 tabular-nums">Proj {side.projTotal!.toFixed(1)}</div> : null}
       </div>
     </div>
   )

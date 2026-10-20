@@ -382,6 +382,8 @@ function LiveMatchupColumn({
                 teamId: m.home.team_id,
                 rank: box?.home.overall_rank,
                 subtitle: recordSubtitle(box?.home.wins, box?.home.losses, box?.home.league_rank, leagueName),
+                status: box?.home.status,
+                projTotal: box?.home.proj_total,
               }}
               away={{
                 name: m.away.team_name,
@@ -393,6 +395,8 @@ function LiveMatchupColumn({
                 teamId: m.away.team_id,
                 rank: box?.away.overall_rank,
                 subtitle: recordSubtitle(box?.away.wins, box?.away.losses, box?.away.league_rank, leagueName),
+                status: box?.away.status,
+                projTotal: box?.away.proj_total,
               }}
             />
           )

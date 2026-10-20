@@ -40,6 +40,8 @@ export function RegularSeasonColumn({ leagueName, leagueId, week }: RegularSeaso
               teamId: m.home.team.team_id,
               rank: m.home.overall_rank,
               subtitle: recordSubtitle(m.home.wins, m.home.losses, m.home.league_rank, leagueName),
+              status: m.home.status,
+              projTotal: m.home.proj_total,
             }}
             away={{
               name: m.away.team.team_name,
@@ -51,6 +53,8 @@ export function RegularSeasonColumn({ leagueName, leagueId, week }: RegularSeaso
               teamId: m.away.team.team_id,
               rank: m.away.overall_rank,
               subtitle: recordSubtitle(m.away.wins, m.away.losses, m.away.league_rank, leagueName),
+              status: m.away.status,
+              projTotal: m.away.proj_total,
             }}
           />
         ))
