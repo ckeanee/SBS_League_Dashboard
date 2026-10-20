@@ -212,6 +212,35 @@ def parse_roster(roster_data: dict) -> list[dict]:
     return players
 
 
+def parse_current_roster(team: dict) -> list[dict]:
+    """Same shape as parse_roster(), but read from a team's always-current roster
+    (fetch_league_data) rather than a week-specific boxscore snapshot. Used as a
+    fallback for a week that hasn't locked yet, when the boxscore roster is still
+    empty — points is 0 for everyone since nothing's been played."""
+    players = []
+    for entry in team.get("roster", {}).get("entries", []):
+        player_info = entry.get("playerPoolEntry", {}).get("player", {})
+        position = DEFAULT_POSITION_NAMES.get(player_info.get("defaultPositionId"), "UNKNOWN")
+        pro_team_id = player_info.get("proTeamId")
+        nfl_team = NFL_TEAMS.get(pro_team_id, "N/A") if pro_team_id else "N/A"
+
+        players.append(
+            {
+                "player_id": str(player_info.get("id", "")),
+                "name": player_info.get("fullName", "Unknown"),
+                "position": position,
+                "nfl_team": nfl_team,
+                "points": 0,
+                "scoring_breakdown": [],
+                "slot_id": entry.get("lineupSlotId", 0),
+            }
+        )
+
+    position_order = {"QB": 0, "K": 1, "P": 2}
+    players.sort(key=lambda p: position_order.get(p["position"], 99))
+    return players
+
+
 def get_matchup_roster_details(league_id: str, week: int) -> list[dict]:
     """Get detailed player-level scoring for all matchups in a week."""
     cache_key = (league_id, week)

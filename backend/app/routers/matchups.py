@@ -6,8 +6,13 @@ from app.db.session import get_db
 from app.schemas.matchups import BoxscoreMatchup, RegularMatchup
 from app.schemas.playoff_matchups import PlayoffMatchupRead
 from app.services import matchup_service, standings_service
-from app.services.espn_client import get_matchup_roster_details
-from app.services.nfl_schedule_service import combine_play_status, get_nfl_game_states, team_play_status
+from app.services.espn_client import fetch_league_data, get_matchup_roster_details, parse_current_roster
+from app.services.nfl_schedule_service import (
+    combine_play_status,
+    get_nfl_game_info,
+    team_play_status,
+    team_week_outlook,
+)
 from app.services.standings_service import fetch_all_matchups
 
 router = APIRouter(tags=["matchups"])
@@ -46,13 +51,43 @@ def boxscore(league_id: str, week: int):
             return {"league_rank": None, "overall_rank": None, "wins": None, "losses": None}
         return {"league_rank": row["league_rank"], "overall_rank": row["rank"], "wins": row["wins"], "losses": row["losses"]}
 
-    game_states = get_nfl_game_states(week)
+    game_info = get_nfl_game_info(week)
+    league_data = fetch_league_data(league_id)
+    teams_by_id = {t.get("id"): t for t in (league_data or {}).get("teams", [])}
+
+    def _roster_for(team_id: int, locked_roster: list[dict]) -> list[dict]:
+        # A week's boxscore roster is empty until that week locks — before then, fall
+        # back to the team's always-current roster so the matchup page still shows who's
+        # playing (with points 0, since nothing's happened yet).
+        if locked_roster:
+            return locked_roster
+        team = teams_by_id.get(team_id)
+        return parse_current_roster(team) if team else []
+
+    def _enrich_roster(roster: list[dict]) -> list[dict]:
+        enriched = []
+        for player in roster:
+            game = game_info.get(player.get("nfl_team"))
+            enriched.append(
+                {
+                    **player,
+                    "game_status": game["status"] if game else None,
+                    "nfl_opponent": game["opponent"] if game else None,
+                    "nfl_team_score": game["score"] if game else None,
+                    "nfl_opponent_score": game["opponent_score"] if game else None,
+                    "nfl_game_date": game["date"] if game else None,
+                    "nfl_is_home": game["is_home"] if game else None,
+                }
+            )
+        return enriched
 
     result = []
     for m in raw_matchups:
         home, away = m["home_team"], m["away_team"]
-        home_status = team_play_status(home["roster"], game_states)
-        away_status = team_play_status(away["roster"], game_states)
+        home_roster = _roster_for(home["id"], home["roster"])
+        away_roster = _roster_for(away["id"], away["roster"])
+        home_status = team_play_status(home_roster, game_info)
+        away_status = team_play_status(away_roster, game_info)
         result.append(
             {
                 "week": m["week"],
@@ -61,16 +96,18 @@ def boxscore(league_id: str, week: int):
                     "team": standings_service.team_ref(league_id, league_name, home["id"], home["name"]),
                     "logo": home["logo"],
                     "total_points": home["total_points"],
-                    "roster": home["roster"],
+                    "roster": _enrich_roster(home_roster),
                     "status": home_status,
+                    **team_week_outlook(league_data, home["id"], week, game_info, home_roster, home["total_points"]),
                     **_team_standing(home["id"]),
                 },
                 "away": {
                     "team": standings_service.team_ref(league_id, league_name, away["id"], away["name"]),
                     "logo": away["logo"],
                     "total_points": away["total_points"],
-                    "roster": away["roster"],
+                    "roster": _enrich_roster(away_roster),
                     "status": away_status,
+                    **team_week_outlook(league_data, away["id"], week, game_info, away_roster, away["total_points"]),
                     **_team_standing(away["id"]),
                 },
             }

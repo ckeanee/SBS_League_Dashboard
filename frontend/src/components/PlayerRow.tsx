@@ -1,8 +1,16 @@
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
-import type { StatLineItem } from '../api/types'
+import type { PlayStatus, StatLineItem } from '../api/types'
 import { headshotUrl, pointsColor } from '../lib/format'
+import { PlayStatusBadge } from './PlayStatusBadge'
+
+interface PlayerGameInfo {
+  status: PlayStatus | null
+  opponent: string | null
+  teamScore: number | null
+  opponentScore: number | null
+}
 
 interface PlayerRowProps {
   playerId: string
@@ -13,9 +21,30 @@ interface PlayerRowProps {
   /** Real per-game stat line explaining the score, e.g. "2-3 FG · 47 LONG · 3-3 XP".
    * Collapsed by default — click the row to reveal it. */
   statLine?: StatLineItem[]
+  /** This player's own real NFL game this week — separate from the fantasy matchup. */
+  gameInfo?: PlayerGameInfo
 }
 
-export function PlayerRow({ playerId, name, subtitle, trailing, points, statLine }: PlayerRowProps) {
+function GameInfoLine({ gameInfo }: { gameInfo: PlayerGameInfo }) {
+  const { status, opponent, teamScore, opponentScore } = gameInfo
+
+  if (!status || !opponent) {
+    return <span className="text-[11px] text-ink-600">Bye</span>
+  }
+
+  const hasScore = teamScore !== null && opponentScore !== null
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <PlayStatusBadge status={status} compact />
+      <span className="text-[11px] text-ink-500">
+        {status === 'pending' ? `vs ${opponent}` : `${hasScore ? `${teamScore}-${opponentScore}` : ''} vs ${opponent}`}
+      </span>
+    </span>
+  )
+}
+
+export function PlayerRow({ playerId, name, subtitle, trailing, points, statLine, gameInfo }: PlayerRowProps) {
   const [expanded, setExpanded] = useState(false)
   const hasStatLine = Boolean(statLine && statLine.length > 0)
 
@@ -48,6 +77,11 @@ export function PlayerRow({ playerId, name, subtitle, trailing, points, statLine
               ) : null}
             </div>
             {subtitle ? <div className="text-[11px] text-ink-500">{subtitle}</div> : null}
+            {gameInfo ? (
+              <div className="mt-0.5">
+                <GameInfoLine gameInfo={gameInfo} />
+              </div>
+            ) : null}
           </div>
         </div>
         <div className={`text-sm font-bold tabular-nums shrink-0 ${points !== undefined ? pointsColor(points) : 'text-ink-400'}`}>

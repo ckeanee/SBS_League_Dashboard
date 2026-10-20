@@ -62,3 +62,16 @@ export function formatNewsSource(source: string): string {
   if (!source) return ''
   return source.toLowerCase() === 'rotowire' ? 'ROTOWIRE.COM' : source.toUpperCase()
 }
+
+/** A player's NFL game kickoff time, e.g. "Sun 3:25 PM". */
+export function formatGameTime(iso: string | null): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('en-US', {
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}

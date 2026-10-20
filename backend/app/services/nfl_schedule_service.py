@@ -8,11 +8,16 @@ logger = logging.getLogger(__name__)
 
 NFL_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
 
+# ESPN's own game-state vocabulary -> ours, used everywhere else in the app
+# ("pending"/"live"/"finished" — see BoxscorePlayer.game_status and friends).
+_STATE_MAP = {"pre": "pending", "in": "live", "post": "finished"}
 
-def get_nfl_game_states(week: int) -> dict[str, str]:
-    """NFL team abbreviation -> ESPN's own game state for this week: "pre" (not started),
-    "in" (live), or "post" (final). A team on a bye is simply absent from the map.
-    Non-fatal on failure — an empty map just means every matchup falls back to "pending"."""
+
+def get_nfl_game_info(week: int) -> dict[str, dict]:
+    """NFL team abbreviation -> that team's game this week: status ("pending"/"live"/
+    "finished"), opponent abbreviation, and both teams' live/final score. A team on a
+    bye is simply absent from the map. Non-fatal on failure — an empty map just means
+    every matchup falls back to "pending" with no per-player game context."""
     if week in nfl_schedule_cache:
         return nfl_schedule_cache[week]
 
@@ -24,29 +29,41 @@ def get_nfl_game_states(week: int) -> dict[str, str]:
         logger.warning("Could not fetch NFL scoreboard for week %s: %s", week, e)
         return {}
 
-    states: dict[str, str] = {}
+    info: dict[str, dict] = {}
     for event in data.get("events", []):
         competition = (event.get("competitions") or [{}])[0]
-        state = competition.get("status", {}).get("type", {}).get("state", "pre")
-        for competitor in competition.get("competitors", []):
-            abbr = competitor.get("team", {}).get("abbreviation")
-            if abbr:
-                states[abbr] = state
+        raw_state = competition.get("status", {}).get("type", {}).get("state", "pre")
+        status = _STATE_MAP.get(raw_state, "pending")
+        competitors = competition.get("competitors", [])
+        by_abbr = {
+            c["team"]["abbreviation"]: c for c in competitors if c.get("team", {}).get("abbreviation")
+        }
+        for abbr, competitor in by_abbr.items():
+            opponent_abbr = next((a for a in by_abbr if a != abbr), None)
+            opponent = by_abbr.get(opponent_abbr) if opponent_abbr else None
+            info[abbr] = {
+                "status": status,
+                "opponent": opponent_abbr,
+                "score": competitor.get("score"),
+                "opponent_score": opponent.get("score") if opponent else None,
+                "date": event.get("date"),
+                "is_home": competitor.get("homeAway") == "home",
+            }
 
-    nfl_schedule_cache[week] = states
-    return states
+    nfl_schedule_cache[week] = info
+    return info
 
 
-def team_play_status(roster: list[dict], game_states: dict[str, str]) -> str:
+def team_play_status(roster: list[dict], game_info: dict[str, dict]) -> str:
     """A fantasy team's own pending/live/finished status, from its roster's real NFL
-    teams' game states. Players on a bye (absent from game_states) don't count either
+    teams' game states. Players on a bye (absent from game_info) don't count either
     way — a bye week doesn't keep a team "pending" forever."""
-    relevant = [game_states[p["nfl_team"]] for p in roster if p.get("nfl_team") in game_states]
+    relevant = [game_info[p["nfl_team"]]["status"] for p in roster if p.get("nfl_team") in game_info]
     if not relevant:
         return "pending"
-    if any(state == "in" for state in relevant):
+    if any(state == "live" for state in relevant):
         return "live"
-    if all(state == "post" for state in relevant):
+    if all(state == "finished" for state in relevant):
         return "finished"
     return "pending"
 
@@ -58,3 +75,40 @@ def combine_play_status(a: str, b: str) -> str:
     if a == "finished" and b == "finished":
         return "finished"
     return "pending"
+
+
+def _status_and_counts(nfl_team: str | None, game_info: dict[str, dict]) -> str | None:
+    return game_info.get(nfl_team, {}).get("status") if nfl_team else None
+
+
+def team_week_outlook(
+    league_data: dict, team_id: int, week: int, game_info: dict[str, dict], roster: list[dict], actual_total: float
+) -> dict:
+    """In-play / to-play counts for a team's roster this week, plus ESPN's own
+    projected total for that matchup (`schedule[N].{home,away}.totalProjectedPoints`).
+    That field goes stale (None) once a week is fully complete, since ESPN stops
+    updating a projection for a game that's already final — in that case the team's
+    actual total is the right number to show anyway, so it's used as the fallback.
+    """
+    in_play = 0
+    to_play = 0
+    for player in roster:
+        status = _status_and_counts(player.get("nfl_team"), game_info)
+        if status == "live":
+            in_play += 1
+        elif status in (None, "pending"):
+            to_play += 1
+
+    proj_total = None
+    for matchup in (league_data or {}).get("schedule", []):
+        if matchup.get("matchupPeriodId") != week:
+            continue
+        for participant in (matchup.get("home", {}), matchup.get("away", {})):
+            if participant.get("teamId") == team_id:
+                proj_total = participant.get("totalProjectedPoints")
+                break
+
+    if proj_total is None:
+        proj_total = actual_total
+
+    return {"in_play": in_play, "to_play": to_play, "proj_total": round(proj_total, 1)}

@@ -75,6 +75,8 @@ export interface ScheduleGame {
   matchup_id: number | null
 }
 
+export type PlayStatus = 'pending' | 'live' | 'finished'
+
 export interface BoxscorePlayer {
   player_id: string
   name: string
@@ -82,9 +84,15 @@ export interface BoxscorePlayer {
   nfl_team: string
   points: number
   scoring_breakdown: StatLineItem[]
+  // This player's own real NFL game this week, not the fantasy matchup's status.
+  // game_status is null when the player's team is on a bye.
+  game_status: PlayStatus | null
+  nfl_opponent: string | null
+  nfl_team_score: number | null
+  nfl_opponent_score: number | null
+  nfl_game_date: string | null
+  nfl_is_home: boolean | null
 }
-
-export type PlayStatus = 'pending' | 'live' | 'finished'
 
 export interface BoxscoreTeam {
   team: TeamRef
@@ -95,6 +103,9 @@ export interface BoxscoreTeam {
   wins: number | null
   losses: number | null
   status: PlayStatus
+  in_play: number
+  to_play: number
+  proj_total: number
   roster: BoxscorePlayer[]
 }
 
