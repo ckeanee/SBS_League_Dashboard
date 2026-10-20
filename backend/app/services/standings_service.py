@@ -6,13 +6,14 @@ def get_owner(league_name: str, team_id: int) -> str:
     return TEAM_OWNERS_BY_ID.get(league_name, {}).get(team_id, "")
 
 
-def team_ref(league_id: str, league_name: str, team_id: int, team_name: str) -> dict:
+def team_ref(league_id: str, league_name: str, team_id: int, team_name: str, logo: str = "") -> dict:
     return {
         "league_id": league_id,
         "league_name": league_name,
         "team_id": team_id,
         "team_name": team_name,
         "owner": get_owner(league_name, team_id),
+        "logo": logo,
     }
 
 
@@ -121,7 +122,7 @@ def process_league_standings(data: dict, league_name: str) -> list[dict]:
         teams_data.append(
             {
                 "league": league_name,
-                "team": team_ref(LEAGUES[league_name], league_name, team.get("id"), team_name),
+                "team": team_ref(LEAGUES[league_name], league_name, team.get("id"), team_name, team.get("logo", "")),
                 "wins": record.get("wins", 0),
                 "losses": record.get("losses", 0),
                 "points_for": record.get("pointsFor", 0),

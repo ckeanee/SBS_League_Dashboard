@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 import { useBoxscore } from '../api/queries'
+import { recordSubtitle } from '../lib/format'
 import { MatchupCard } from './MatchupCard'
 import { LoadingState, EmptyState } from './ui/States'
 
@@ -28,6 +29,7 @@ export function RegularSeasonColumn({ leagueName, leagueId, week }: RegularSeaso
           <MatchupCard
             key={`${m.home.team.team_id}-${m.away.team.team_id}`}
             onOpenMatchup={() => navigate(`/matchup/${leagueId}/${week}/${m.home.team.team_id}`)}
+            status={m.status}
             home={{
               name: m.home.team.team_name,
               owner: m.home.team.owner,
@@ -36,6 +38,8 @@ export function RegularSeasonColumn({ leagueName, leagueId, week }: RegularSeaso
               winning: m.home.total_points > m.away.total_points,
               leagueId: m.home.team.league_id,
               teamId: m.home.team.team_id,
+              rank: m.home.overall_rank,
+              subtitle: recordSubtitle(m.home.wins, m.home.losses, m.home.league_rank, leagueName),
             }}
             away={{
               name: m.away.team.team_name,
@@ -45,6 +49,8 @@ export function RegularSeasonColumn({ leagueName, leagueId, week }: RegularSeaso
               winning: m.away.total_points > m.home.total_points,
               leagueId: m.away.team.league_id,
               teamId: m.away.team.team_id,
+              rank: m.away.overall_rank,
+              subtitle: recordSubtitle(m.away.wins, m.away.losses, m.away.league_rank, leagueName),
             }}
           />
         ))

@@ -21,6 +21,18 @@ export function lastName(fullName: string): string {
   return parts[parts.length - 1] || fullName
 }
 
+/** "(6-1, #3 Doinks)" — record plus division rank, ESPN scoreboard style. */
+export function recordSubtitle(
+  wins: number | null | undefined,
+  losses: number | null | undefined,
+  leagueRank: number | null | undefined,
+  leagueName: string,
+): string | undefined {
+  if (wins == null || losses == null) return undefined
+  const record = `${wins}-${losses}`
+  return leagueRank ? `(${record}, #${leagueRank} ${leagueName})` : `(${record})`
+}
+
 export function formatScore(score: number | string | null): string {
   if (score === null || score === undefined) return '---'
   if (typeof score === 'string') return score

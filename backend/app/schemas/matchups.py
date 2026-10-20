@@ -1,6 +1,10 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 from app.schemas.common import StatLineItem, TeamRef
+
+PlayStatus = Literal["pending", "live", "finished"]
 
 
 class BoxscorePlayer(BaseModel):
@@ -19,6 +23,13 @@ class BoxscoreTeam(BaseModel):
     team: TeamRef
     logo: str
     total_points: float
+    league_rank: int | None = None
+    overall_rank: int | None = None
+    wins: int | None = None
+    losses: int | None = None
+    # Whether this team's rostered players' real NFL games have yet to start, are in
+    # progress, or are all done — "pending"/"live"/"finished".
+    status: PlayStatus = "pending"
     roster: list[BoxscorePlayer]
 
 
@@ -26,6 +37,9 @@ class BoxscoreMatchup(BaseModel):
     week: int
     home: BoxscoreTeam
     away: BoxscoreTeam
+    # Combined matchup status: "live" if either side is live, "finished" if both sides
+    # are finished, "pending" otherwise.
+    status: PlayStatus = "pending"
 
 
 class RegularMatchup(BaseModel):

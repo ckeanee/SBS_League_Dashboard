@@ -25,3 +25,8 @@ player_directory_cache: TTLCache = TTLCache(maxsize=1, ttl=300)
 # Keyed by (league_id, week) -> filtered transaction list for that week. Same 300s TTL as
 # the other per-week ESPN data.
 transactions_cache: TTLCache = TTLCache(maxsize=64, ttl=300)
+
+# Keyed by NFL week -> {team_abbr: "pre" | "in" | "post"}. Short TTL since this is what
+# drives the live "pending/live/finished" matchup indicator — it needs to flip promptly
+# as real games kick off and end, unlike the mostly-static fantasy data above.
+nfl_schedule_cache: TTLCache = TTLCache(maxsize=18, ttl=30)

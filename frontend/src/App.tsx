@@ -12,9 +12,9 @@ import { TeamsPage } from './pages/TeamsPage'
 
 const navItems = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/teams', label: 'Teams', icon: Users, end: false },
+  { to: '/scoreboard', label: 'Scores', icon: Trophy, end: false },
   { to: '/players', label: 'Players', icon: Star, end: false },
-  { to: '/scoreboard', label: 'Scoreboard', icon: Trophy, end: false },
+  { to: '/teams', label: 'Teams', icon: Users, end: false },
   { to: '/admin', label: 'Admin', icon: Shield, end: false },
 ]
 

@@ -7,6 +7,7 @@ class TeamRef(BaseModel):
     team_id: int
     team_name: str
     owner: str = ""
+    logo: str = ""
 
 
 class LeagueInfo(BaseModel):

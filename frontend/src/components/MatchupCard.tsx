@@ -1,7 +1,9 @@
 import { ChevronDown, Trophy } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import type { PlayStatus } from '../api/types'
 import { formatScore } from '../lib/format'
+import { PlayStatusBadge } from './PlayStatusBadge'
 import { TeamBadge } from './TeamBadge'
 import { Badge } from './ui/Badge'
 import { Card } from './ui/Section'
@@ -12,6 +14,7 @@ export interface MatchupCardSide {
   logo?: string
   score: number | string | null
   winning: boolean
+  rank?: number | null
   subtitle?: string
   leagueId?: string
   teamId?: number
@@ -21,6 +24,8 @@ interface MatchupCardProps {
   home: MatchupCardSide
   away: MatchupCardSide
   badge?: { label: string; color: string }
+  /** Whether rostered players have yet to play, are playing now, or are all done. */
+  status?: PlayStatus
   expandLabel?: string
   children?: ReactNode
   /** Navigate to this matchup's full detail page. Team names inside stay their own
@@ -37,6 +42,7 @@ function ScoreRow({ side }: { side: MatchupCardSide }) {
         owner={side.owner}
         logo={side.logo}
         bold={side.winning}
+        rank={side.rank}
         subtitle={side.subtitle}
         leagueId={side.leagueId}
         teamId={side.teamId}
@@ -50,12 +56,13 @@ function ScoreRow({ side }: { side: MatchupCardSide }) {
 
 /** Shared team-vs-team card used on Home, Scoreboard, and Admin — the single place
  * this markup lives, instead of being copy-pasted across three pages. */
-export function MatchupCard({ home, away, badge, expandLabel = 'Top Scorers', children, onOpenMatchup }: MatchupCardProps) {
+export function MatchupCard({ home, away, badge, status, expandLabel = 'Top Scorers', children, onOpenMatchup }: MatchupCardProps) {
   return (
     <Card className="mb-3 overflow-hidden transition-colors hover:border-line-strong">
-      {badge ? (
-        <div className="flex justify-center pt-3">
-          <Badge label={badge.label} color={badge.color} />
+      {badge || status ? (
+        <div className="flex items-center justify-center gap-2 pt-3">
+          {badge ? <Badge label={badge.label} color={badge.color} /> : null}
+          {status ? <PlayStatusBadge status={status} /> : null}
         </div>
       ) : null}
 

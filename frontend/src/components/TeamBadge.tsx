@@ -6,13 +6,15 @@ interface TeamBadgeProps {
   logo?: string
   bold?: boolean
   size?: number
+  /** Overall rank, shown as a small number right before the team name (e.g. "6 Indiana"). */
+  rank?: number | null
   subtitle?: string
   /** When both are given, the badge links to that team's page (/teams/:leagueId/:teamId). */
   leagueId?: string
   teamId?: number
 }
 
-export function TeamBadge({ name, owner, logo, bold, size = 32, subtitle, leagueId, teamId }: TeamBadgeProps) {
+export function TeamBadge({ name, owner, logo, bold, size = 32, rank, subtitle, leagueId, teamId }: TeamBadgeProps) {
   const content = (
     <div className="flex items-center gap-3 min-w-0">
       {logo ? (
@@ -32,9 +34,10 @@ export function TeamBadge({ name, owner, logo, bold, size = 32, subtitle, league
         />
       )}
       <div className="min-w-0">
-        <div className={`truncate ${bold ? 'font-bold text-ink-100' : 'font-medium text-ink-200'}`}>
-          {name}
-          {owner ? <span className="ml-2 text-xs font-normal text-ink-500">{owner}</span> : null}
+        <div className={`truncate flex items-baseline gap-1.5 ${bold ? 'font-bold text-ink-100' : 'font-medium text-ink-200'}`}>
+          {rank ? <span className="text-sm font-normal text-ink-500">{rank}</span> : null}
+          <span className="truncate">{name}</span>
+          {owner ? <span className="text-xs font-normal text-ink-500">{owner}</span> : null}
         </div>
         {subtitle ? <div className="text-xs text-ink-500 mt-0.5">{subtitle}</div> : null}
       </div>

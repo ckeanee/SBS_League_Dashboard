@@ -14,15 +14,14 @@ import {
 } from '../api/queries'
 import type { RegularMatchup } from '../api/types'
 import { ActivityFeed } from '../components/ActivityFeed'
-import { BoxscoreRoster } from '../components/BoxscoreRoster'
 import { MatchupCard } from '../components/MatchupCard'
-import { PlayoffBoxscores } from '../components/PlayoffBoxscores'
 import { DivisionStandingsTable, PlayoffStandingsTable } from '../components/StandingsTable'
 import { Card, Section } from '../components/ui/Section'
 import { RefreshButton } from '../components/ui/RefreshButton'
 import { Select } from '../components/ui/Select'
 import { EmptyState, LoadingState } from '../components/ui/States'
 import { MATCHUP_TYPE_COLORS } from '../lib/constants'
+import { recordSubtitle } from '../lib/format'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -113,6 +112,11 @@ export function HomePage() {
       .filter((x): x is NonNullable<typeof x> => x !== null)
   }, [allMatchups])
 
+  const topWeeklyScore = useMemo(
+    () => (weeklyHighScores.length === 0 ? null : weeklyHighScores.reduce((a, b) => (a.score > b.score ? a : b))),
+    [weeklyHighScores],
+  )
+
   const availableWeeks = useMemo(
     () => (allMatchups ? Array.from(new Set(allMatchups.map((m) => m.week))).sort((a, b) => a - b) : []),
     [allMatchups],
@@ -185,29 +189,46 @@ export function HomePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {weeklyHighScores.map((h) => (
-                    <tr key={h.week} className="border-b border-line/60 last:border-0 hover:bg-white/[0.02]">
-                      <td className="py-2 pl-4 pr-2 tabular-nums">{h.week}</td>
-                      <td className="py-2 pr-2 font-medium text-ink-100">
-                        <Link to={`/teams/${h.leagueId}/${h.teamId}`} className="hover:text-brand-400">
-                          {h.team}
-                        </Link>
-                        {h.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({h.owner})</span> : null}
-                      </td>
-                      <td className="py-2 pr-2 text-ink-400 hidden sm:table-cell">{h.league}</td>
-                      <td className="py-2 pr-2 text-right font-semibold tabular-nums text-good">{h.score.toFixed(1)}</td>
-                      <td className="py-2 pr-4 text-ink-400">
-                        <Link to={`/teams/${h.opponentLeagueId}/${h.opponentTeamId}`} className="hover:text-brand-400">
-                          {h.opponent}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                  {weeklyHighScores.map((h) => {
+                    const isTopScore = h.week === topWeeklyScore!.week
+                    return (
+                      <tr
+                        key={h.week}
+                        className={`border-b border-line/60 last:border-0 hover:bg-white/[0.02] ${
+                          isTopScore ? 'bg-brand-500/[0.08]' : ''
+                        }`}
+                      >
+                        <td className="py-2 pl-4 pr-2 tabular-nums">{h.week}</td>
+                        <td className="py-2 pr-2 font-medium text-ink-100">
+                          <Link to={`/teams/${h.leagueId}/${h.teamId}`} className="hover:text-brand-400">
+                            {h.team}
+                          </Link>
+                          {h.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({h.owner})</span> : null}
+                        </td>
+                        <td className="py-2 pr-2 text-ink-400 hidden sm:table-cell">{h.league}</td>
+                        <td className="py-2 pr-2 text-right font-semibold tabular-nums text-good">
+                          <span className="inline-flex items-center gap-1 justify-end">
+                            {isTopScore ? <Flame className="w-3.5 h-3.5 text-brand-400" /> : null}
+                            {h.score.toFixed(1)}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-ink-400">
+                          <Link to={`/teams/${h.opponentLeagueId}/${h.opponentTeamId}`} className="hover:text-brand-400">
+                            {h.opponent}
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </Card>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Metric label="Highest Score" value={Math.max(...weeklyHighScores.map((h) => h.score)).toFixed(1)} />
+              <Metric
+                label="Highest Score"
+                value={topWeeklyScore!.score.toFixed(1)}
+                subtitle={`Week ${topWeeklyScore!.week} · ${topWeeklyScore!.team}${topWeeklyScore!.owner ? ` (${topWeeklyScore!.owner})` : ''}`}
+              />
               <Metric
                 label="Average Weekly High"
                 value={(weeklyHighScores.reduce((s, h) => s + h.score, 0) / weeklyHighScores.length).toFixed(1)}
@@ -281,18 +302,7 @@ export function HomePage() {
                       leagueId: m.away.team.league_id,
                       teamId: m.away.team.team_id,
                     }}
-                  >
-                    <PlayoffBoxscores
-                      homeLeagueId={m.home.team.league_id}
-                      awayLeagueId={m.away.team.league_id}
-                      homeTeamId={m.home.team.team_id}
-                      awayTeamId={m.away.team.team_id}
-                      homeName={m.home.team.team_name}
-                      awayName={m.away.team.team_name}
-                      week={m.week}
-                      limit={3}
-                    />
-                  </MatchupCard>
+                  />
                 ))}
             </div>
           </div>
@@ -319,19 +329,20 @@ export function HomePage() {
   )
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, subtitle }: { label: string; value: string; subtitle?: string }) {
   return (
     <Card className="p-3.5 text-center">
       <div className="text-xs text-ink-500">{label}</div>
       <div className="text-2xl font-display font-bold text-ink-100">{value}</div>
+      {subtitle ? <div className="text-xs text-ink-500 mt-0.5 truncate">{subtitle}</div> : null}
     </Card>
   )
 }
 
 /** Home page's regular-season matchup column. Unlike the Scoreboard's RegularSeasonColumn,
  * scores here come from the schedule endpoint (totalPointsLive — accurate mid-week), not the
- * boxscore endpoint (totalPoints — only final). The boxscore is still fetched, but only to
- * power the "Top Scorers" preview of each side's best 3 players. */
+ * boxscore endpoint (totalPoints — only final). The boxscore is still fetched, but only for
+ * each side's current rank/record shown under their name. */
 function LiveMatchupColumn({
   leagueName,
   leagueId,
@@ -360,6 +371,7 @@ function LiveMatchupColumn({
             <MatchupCard
               key={`${m.home.team_id}-${m.away.team_id}`}
               onOpenMatchup={() => navigate(`/matchup/${leagueId}/${week}/${m.home.team_id}`)}
+              status={box?.status}
               home={{
                 name: m.home.team_name,
                 owner: m.home.owner,
@@ -368,6 +380,8 @@ function LiveMatchupColumn({
                 winning: m.home_score > m.away_score,
                 leagueId: m.home.league_id,
                 teamId: m.home.team_id,
+                rank: box?.home.overall_rank,
+                subtitle: recordSubtitle(box?.home.wins, box?.home.losses, box?.home.league_rank, leagueName),
               }}
               away={{
                 name: m.away.team_name,
@@ -377,23 +391,10 @@ function LiveMatchupColumn({
                 winning: m.away_score > m.home_score,
                 leagueId: m.away.league_id,
                 teamId: m.away.team_id,
+                rank: box?.away.overall_rank,
+                subtitle: recordSubtitle(box?.away.wins, box?.away.losses, box?.away.league_rank, leagueName),
               }}
-            >
-              {box ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs font-semibold text-ink-400 mb-1.5">{m.home.team_name}</p>
-                    <BoxscoreRoster roster={box.home.roster} limit={3} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-ink-400 mb-1.5">{m.away.team_name}</p>
-                    <BoxscoreRoster roster={box.away.roster} limit={3} />
-                  </div>
-                </div>
-              ) : (
-                <LoadingState label="Loading rosters…" />
-              )}
-            </MatchupCard>
+            />
           )
         })
       )}

@@ -4,6 +4,7 @@ export interface TeamRef {
   team_id: number
   team_name: string
   owner: string
+  logo: string
 }
 
 export interface LeagueInfo {
@@ -83,10 +84,17 @@ export interface BoxscorePlayer {
   scoring_breakdown: StatLineItem[]
 }
 
+export type PlayStatus = 'pending' | 'live' | 'finished'
+
 export interface BoxscoreTeam {
   team: TeamRef
   logo: string
   total_points: number
+  league_rank: number | null
+  overall_rank: number | null
+  wins: number | null
+  losses: number | null
+  status: PlayStatus
   roster: BoxscorePlayer[]
 }
 
@@ -94,6 +102,7 @@ export interface BoxscoreMatchup {
   week: number
   home: BoxscoreTeam
   away: BoxscoreTeam
+  status: PlayStatus
 }
 
 export interface RegularMatchup {

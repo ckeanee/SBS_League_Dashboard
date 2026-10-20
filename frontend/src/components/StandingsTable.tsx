@@ -125,10 +125,25 @@ export function PlayoffStandingsTable({ rows }: { rows: PlayoffStandingsRow[] })
                 <SeedBadge seed={row.rank} />
               </td>
               <td className="py-2.5 pr-2 font-medium text-ink-100">
-                <Link to={`/teams/${row.team.league_id}/${row.team.team_id}`} className="hover:text-brand-400">
-                  {row.team.team_name}
+                <Link
+                  to={`/teams/${row.team.league_id}/${row.team.team_id}`}
+                  className="flex items-center gap-2 min-w-0 hover:text-brand-400"
+                >
+                  {row.team.logo ? (
+                    <img
+                      src={row.team.logo}
+                      alt=""
+                      className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10 shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : null}
+                  <span className="truncate">{row.team.team_name}</span>
+                  {row.team.owner ? (
+                    <span className="text-xs font-normal text-ink-500 shrink-0">({row.team.owner})</span>
+                  ) : null}
                 </Link>
-                {row.team.owner ? <span className="ml-2 text-xs font-normal text-ink-500">({row.team.owner})</span> : null}
               </td>
               <td className="py-2.5 pr-2 text-center text-ink-400 hidden sm:table-cell">{row.team.league_name}</td>
               <td className="py-2.5 pr-2 text-center tabular-nums">{row.wins.toFixed(1)}</td>
