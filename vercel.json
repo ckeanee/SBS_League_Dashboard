@@ -6,7 +6,7 @@
   "routes": [
     { "src": "/api/(.*)", "dest": "api/index.py" },
     { "src": "/recap/?", "dest": "/frontend/recap/index.html" },
-    { "src": "/recap/(\\d{4})/(\\d{1,2})/?", "dest": "/frontend/recap/$1/$2.html" },
+    { "src": "/recap/(\\d{4})/0?(\\d{1,2})/?", "dest": "/frontend/recap/$1/$2.html" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/frontend/index.html" }
   ]
