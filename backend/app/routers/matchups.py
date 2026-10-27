@@ -13,6 +13,7 @@ from app.services.nfl_schedule_service import (
     team_play_status,
     team_week_outlook,
 )
+from app.services.playoff_service import calculate_playoff_standings
 from app.services.standings_service import fetch_all_matchups
 
 router = APIRouter(tags=["matchups"])
@@ -39,17 +40,25 @@ def boxscore(league_id: str, week: int):
     league_name = LEAGUE_ID_TO_NAME.get(league_id, "")
     raw_matchups = get_matchup_roster_details(league_id, week)
 
-    standings_by_team_id = {
-        row["team"]["team_id"]: row
-        for row in standings_service.fetch_all_leagues()
-        if row["team"]["league_id"] == league_id
-    }
+    all_standings = standings_service.fetch_all_leagues()
+    playoff_rows = calculate_playoff_standings(all_standings, fetch_all_matchups())
+    standings_by_team_id = {row["team"]["team_id"]: row for row in all_standings if row["team"]["league_id"] == league_id}
+    # The number shown next to a team elsewhere in the app (e.g. the Home standings
+    # table) is playoff seed, not plain win/points rank — those two can diverge once a
+    # league's guaranteed-spot rule kicks in, so this has to match seed or it reads as
+    # a bug (a team can be "seed 8" on Home but "rank 11" here otherwise).
+    seed_by_team_id = {row["team"]["team_id"]: row["rank"] for row in playoff_rows if row["team"]["league_id"] == league_id}
 
     def _team_standing(team_id: int) -> dict:
         row = standings_by_team_id.get(team_id)
         if not row:
             return {"league_rank": None, "overall_rank": None, "wins": None, "losses": None}
-        return {"league_rank": row["league_rank"], "overall_rank": row["rank"], "wins": row["wins"], "losses": row["losses"]}
+        return {
+            "league_rank": row["league_rank"],
+            "overall_rank": seed_by_team_id.get(team_id),
+            "wins": row["wins"],
+            "losses": row["losses"],
+        }
 
     game_info = get_nfl_game_info(week)
     league_data = fetch_league_data(league_id)
